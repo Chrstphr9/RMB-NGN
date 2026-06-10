@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RMB → NGN Converter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface-2: #1f2436;
+    --border: #2a3050;
+    --border-light: #323a5a;
+    --accent: #4ade80;
+    --accent-dim: rgba(74, 222, 128, 0.12);
+    --accent-glow: rgba(74, 222, 128, 0.25);
+    --text-primary: #eef0f8;
+    --text-secondary: #8892b0;
+    --text-muted: #4a5578;
+    --red: #f87171;
+    --rate: 201;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 16px 80px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .header .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .header h1 {
+    font-size: clamp(28px, 5vw, 42px);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+  .header h1 span {
+    color: var(--accent);
+  }
+  .header p {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 300;
+  }
+
+  /* Rate badge / editor */
+  .rate-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(74,222,128,0.3);
+    border-radius: 100px;
+    padding: 5px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    margin-top: 16px;
+  }
+  .rate-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); display: inline-block; flex-shrink: 0; }
+  .rate-badge .rate-prefix { white-space: nowrap; }
+  .rate-badge #rate-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed rgba(74,222,128,0.6);
+    outline: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    width: 56px;
+    text-align: center;
+    padding: 0 2px;
+    -moz-appearance: textfield;
+  }
+  .rate-badge #rate-input::-webkit-outer-spin-button,
+  .rate-badge #rate-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .rate-badge #rate-input:focus { border-bottom-color: var(--accent); }
+  .rate-badge .reset-rate {
+    background: none;
+    border: none;
+    color: rgba(74,222,128,0.5);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  .rate-badge .reset-rate:hover { color: var(--accent); }
+
+  /* Main card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 560px;
+    padding: 32px;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  /* Input area */
+  .input-group {
+    position: relative;
+    margin-bottom: 20px;
+  }
+  .input-group .currency-tag {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    pointer-events: none;
+  }
+  .input-group input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 14px 14px 52px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+  }
+  .input-group input::-webkit-outer-spin-button,
+  .input-group input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .input-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  .input-group input::placeholder { color: var(--text-muted); font-size: 16px; }
+
+  /* Percentage selector */
+  .pct-label { margin-bottom: 10px; }
+  .pct-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .pct-btn {
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pct-btn:hover { border-color: var(--border-light); color: var(--text-primary); }
+  .pct-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Custom percentage input */
+  .custom-pct-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .custom-pct-wrap input {
+    width: 90px;
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+  }
+  .custom-pct-wrap input::-webkit-outer-spin-button,
+  .custom-pct-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .custom-pct-wrap input:focus { border-color: var(--accent); }
+  .custom-pct-wrap span { font-size: 13px; color: var(--text-secondary); }
+
+  /* Convert button */
+  .convert-btn {
+    width: 100%;
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: #0a1a12;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.01em;
+  }
+  .convert-btn:hover { opacity: 0.9; }
+  .convert-btn:active { transform: scale(0.99); }
+
+  /* Results */
+  .results {
+    margin-top: 24px;
+    display: none;
+  }
+  .results.visible { display: block; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 24px 0;
+  }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .result-row:last-child { border-bottom: none; }
+  .result-row .label {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .result-row .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .final-result {
+    background: var(--accent-dim);
+    border: 1px solid rgba(74,222,128,0.3);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+    text-align: center;
+  }
+  .final-result .final-label {
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .final-result .final-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(22px, 5vw, 32px);
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+  .final-result .final-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  /* Batch mode */
+  .toggle-batch {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0;
+    margin-top: 16px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .batch-area {
+    display: none;
+    margin-top: 20px;
+  }
+  .batch-area.visible { display: block; }
+  .batch-area textarea {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.8;
+    transition: border-color 0.2s;
+  }
+  .batch-area textarea:focus { border-color: var(--accent); }
+  .batch-area textarea::placeholder { color: var(--text-muted); }
+
+  .batch-results {
+    margin-top: 16px;
+  }
+  .batch-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .batch-row:last-child { border-bottom: none; }
+  .batch-row:nth-child(even) { background: var(--surface-2); }
+  .batch-row .col { color: var(--text-secondary); }
+  .batch-row .col.ngn-final { color: var(--accent); font-weight: 600; }
+  .batch-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    padding: 6px 10px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .batch-total {
+    margin-top: 12px;
+    padding: 14px 16px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(74,222,128,0.25);
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .batch-total .bt-label { font-size: 12px; color: var(--text-secondary); }
+  .batch-total .bt-value { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 600; color: var(--accent); }
+
+  /* Footer */
+  .footer {
+    margin-top: 32px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 0 16px;
+    line-height: 1.6;
+  }
+
+  /* ── Mobile responsive ── */
+  @media (max-width: 600px) {
+    body {
+      padding: 24px 12px 60px;
+    }
+
+    .header {
+      margin-bottom: 24px;
+    }
+
+    .header p {
+      font-size: 13px;
+      padding: 0 8px;
+    }
+
+    .rate-badge {
+      font-size: 11px;
+      padding: 5px 12px;
+      gap: 6px;
+    }
+
+    .rate-badge #rate-input {
+      width: 52px;
+      font-size: 11px;
+    }
+
+    .card {
+      padding: 20px 16px;
+      border-radius: 12px;
+    }
+
+    .input-group input {
+      font-size: 18px;
+      padding: 13px 13px 13px 46px;
+    }
+
+    .pct-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .pct-btn {
+      padding: 10px 8px;
+      font-size: 13px;
+      text-align: center;
+      border-radius: 8px;
+    }
+
+    .custom-pct-wrap {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .custom-pct-wrap input {
+      width: 80px;
+      padding: 10px 10px;
+      font-size: 14px;
+    }
+
+    .convert-btn {
+      padding: 15px;
+      font-size: 16px;
+      border-radius: 10px;
+      /* Larger tap target on mobile */
+      min-height: 50px;
+    }
+
+    .result-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 3px;
+      padding: 10px 0;
+    }
+
+    .result-row .value {
+      font-size: 15px;
+    }
+
+    .final-result {
+      padding: 16px 12px;
+    }
+
+    .final-result .final-value {
+      font-size: clamp(20px, 6vw, 28px);
+    }
+
+    .final-result .final-sub {
+      font-size: 11px;
+      word-break: break-all;
+    }
+
+    /* Batch table on mobile: collapse to 2 cols showing RMB + Final only */
+    .batch-header,
+    .batch-row {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    /* Hide middle two columns on small screens */
+    .batch-header span:nth-child(2),
+    .batch-header span:nth-child(3),
+    .batch-row .col:nth-child(2),
+    .batch-row .col:nth-child(3) {
+      display: none;
+    }
+
+    .batch-total {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      padding: 12px 14px;
+    }
+
+    .batch-total .bt-value {
+      font-size: 15px;
+    }
+
+    .toggle-batch {
+      font-size: 13px;
+    }
+
+    .divider {
+      margin: 18px 0;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .pct-options {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .input-group input {
+      font-size: 16px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="eyebrow">Currency Converter</div>
+  <h1>RMB <span>→</span> NGN</h1>
+  <p>Convert Chinese Yuan to Nigerian Naira with a custom percentage add-on</p>
+  <div class="rate-badge">
+    <span class="rate-prefix">1 RMB = ₦</span>
+    <input type="number" id="rate-input" value="201.5" min="0.01" step="0.01" title="Edit exchange rate" inputmode="decimal">
+    <button class="reset-rate" onclick="resetRate()" title="Reset to default (201.5)">↺</button>
+  </div>
+</div>
+
+<div class="card">
+
+  <!-- Single input -->
+  <div id="single-mode">
+    <div class="section-label">Enter amount (RMB)</div>
+    <div class="input-group">
+      <span class="currency-tag">¥</span>
+      <input type="number" id="rmb-input" placeholder="0.00" min="0" step="any" inputmode="decimal">
+    </div>
+
+    <div class="section-label pct-label">Add percentage</div>
+    <div class="pct-options">
+      <button class="pct-btn" data-pct="0">0%</button>
+      <button class="pct-btn active" data-pct="5">5%</button>
+      <button class="pct-btn" data-pct="10">10%</button>
+      <button class="pct-btn" data-pct="15">15%</button>
+      <button class="pct-btn" data-pct="20">20%</button>
+      <button class="pct-btn" data-pct="25">25%</button>
+    </div>
+
+    <div class="custom-pct-wrap">
+      <span style="font-size:13px; color:var(--text-secondary);">Custom:</span>
+      <input type="number" id="custom-pct" placeholder="e.g. 7" min="0" max="999" step="any" inputmode="decimal">
+      <span>%</span>
+    </div>
+
+    <button class="convert-btn" onclick="convert()">Convert</button>
+
+    <div class="results" id="results">
+      <hr class="divider">
+      <div class="result-row">
+        <span class="label">Original (RMB)</span>
+        <span class="value" id="r-rmb">—</span>
+      </div>
+      <div class="result-row">
+        <span class="label">Converted (NGN)</span>
+        <span class="value" id="r-ngn">—</span>
+      </div>
+      <div class="result-row">
+        <span class="label" id="r-pct-label">+ 5% added</span>
+        <span class="value" id="r-pct-val">—</span>
+      </div>
+      <div class="final-result">
+        <div class="final-label">Final Amount</div>
+        <div class="final-value" id="r-final">₦0.00</div>
+        <div class="final-sub" id="r-formula">—</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="toggle-batch" onclick="toggleBatch()" id="batch-toggle">+ Switch to batch mode (multiple numbers)</button>
+
+  <!-- Batch mode -->
+  <div class="batch-area" id="batch-area">
+    <hr class="divider">
+    <div class="section-label">Enter numbers (one per line)</div>
+    <textarea id="batch-input" placeholder="16100&#10;23100&#10;34700&#10;8500&#10;..."></textarea>
+    <button class="convert-btn" style="margin-top:12px;" onclick="convertBatch()">Convert All</button>
+    <div class="batch-results" id="batch-results"></div>
+  </div>
+
+</div>
+
+<div class="footer">Default rate: 1 RMB = ₦201.50 · Percentage applied on converted NGN value</div>
+
+<script>
+  const DEFAULT_RATE = 201.5;
+  let selectedPct = 5;
+  let batchVisible = false;
+
+  function getRate() {
+    const r = parseFloat(document.getElementById('rate-input').value);
+    return (!isNaN(r) && r > 0) ? r : DEFAULT_RATE;
+  }
+
+  function resetRate() {
+    document.getElementById('rate-input').value = DEFAULT_RATE;
+    if (document.getElementById('results').classList.contains('visible')) convert();
+  }
+
+  document.getElementById('rate-input').addEventListener('input', () => {
+    if (document.getElementById('results').classList.contains('visible')) convert();
+  });
+
+  // Percentage buttons
+  document.querySelectorAll('.pct-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.pct-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedPct = parseFloat(btn.dataset.pct);
+      document.getElementById('custom-pct').value = '';
+      if (document.getElementById('results').classList.contains('visible')) convert();
+    });
+  });
+
+  document.getElementById('custom-pct').addEventListener('input', function() {
+    if (this.value !== '') {
+      document.querySelectorAll('.pct-btn').forEach(b => b.classList.remove('active'));
+      selectedPct = parseFloat(this.value) || 0;
+      if (document.getElementById('results').classList.contains('visible')) convert();
+    }
+  });
+
+  document.getElementById('rmb-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') convert();
+  });
+
+  function fmt(n) {
+    return '₦' + n.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function fmtRMB(n) {
+    return '¥' + n.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function getPct() {
+    const custom = document.getElementById('custom-pct').value;
+    return custom !== '' ? (parseFloat(custom) || 0) : selectedPct;
+  }
+
+  function convert() {
+    const val = parseFloat(document.getElementById('rmb-input').value);
+    if (isNaN(val) || val < 0) return;
+    const pct = getPct();
+    const rate = getRate();
+    const ngn = val * rate;
+    const pctAmount = ngn * (pct / 100);
+    const final = ngn + pctAmount;
+
+    document.getElementById('r-rmb').textContent = fmtRMB(val);
+    document.getElementById('r-ngn').textContent = fmt(ngn);
+    document.getElementById('r-pct-label').textContent = `+ ${pct}% added`;
+    document.getElementById('r-pct-val').textContent = fmt(pctAmount);
+    document.getElementById('r-final').textContent = fmt(final);
+    document.getElementById('r-formula').textContent = `¥${val} × ${rate} × ${(1 + pct/100).toFixed(2)} = ${fmt(final)}`;
+    document.getElementById('results').classList.add('visible');
+  }
+
+  function toggleBatch() {
+    batchVisible = !batchVisible;
+    document.getElementById('batch-area').classList.toggle('visible', batchVisible);
+    document.getElementById('batch-toggle').textContent = batchVisible
+      ? '− Hide batch mode'
+      : '+ Switch to batch mode (multiple numbers)';
+  }
+
+  function convertBatch() {
+    const pct = getPct();
+    const rate = getRate();
+    const lines = document.getElementById('batch-input').value
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l !== '' && !isNaN(parseFloat(l)));
+
+    if (!lines.length) return;
+
+    let grandTotal = 0;
+    let html = `<div class="batch-header"><span>RMB</span><span>NGN</span><span>+${pct}%</span><span>Final</span></div>`;
+
+    lines.forEach(l => {
+      const val = parseFloat(l);
+      const ngn = val * rate;
+      const pctAmt = ngn * (pct / 100);
+      const final = ngn + pctAmt;
+      grandTotal += final;
+
+      const fmtN = n => n.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      html += `<div class="batch-row">
+        <span class="col">¥${val.toLocaleString()}</span>
+        <span class="col">₦${fmtN(ngn)}</span>
+        <span class="col">₦${fmtN(pctAmt)}</span>
+        <span class="col ngn-final">₦${fmtN(final)}</span>
+      </div>`;
+    });
+
+    html += `<div class="batch-total">
+      <span class="bt-label">${lines.length} entries · Grand Total</span>
+      <span class="bt-value">₦${grandTotal.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+    </div>`;
+
+    document.getElementById('batch-results').innerHTML = html;
+  }
+</script>
+</body>
+</html>
