@@ -277,7 +277,7 @@
   <p>Convert to Nigerian Naira with a custom percentage add-on</p>
   <div class="rate-badge">
     <span class="rate-prefix" id="rate-prefix-text">1 RMB = ₦</span>
-    <input type="number" id="rate-input" value="201.5" min="0.01" step="0.01" inputmode="decimal" title="Edit exchange rate">
+    <input type="number" id="rate-input" value="210" min="0.01" step="0.01" inputmode="decimal" title="Edit exchange rate">
     <button class="reset-rate" onclick="resetRate()" title="Reset to default">↺</button>
   </div>
 </div>
@@ -353,12 +353,12 @@
 </div>
 
 <div class="footer" id="footer-text">
-  RMB default: ₦201.50 · USD default: ₦1,361.00 · Percentage applied on converted NGN value
+  RMB default: ₦210.00 · USD default: ₦1,361.00 · Percentage applied on converted NGN value
 </div>
 
 <script>
   const CURRENCIES = {
-    RMB: { symbol: '¥', defaultRate: 201.5,  label: 'RMB', title: 'RMB <span>→</span> NGN', prefix: '1 RMB = ₦' },
+    RMB: { symbol: '¥', defaultRate: 210,  label: 'RMB', title: 'RMB <span>→</span> NGN', prefix: '1 RMB = ₦' },
     USD: { symbol: '$', defaultRate: 1361,    label: 'USD', title: 'USD <span>→</span> NGN', prefix: '1 USD = ₦' }
   };
 
