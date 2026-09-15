@@ -492,6 +492,17 @@
     }
   });
 
+  document.getElementById('main-input').addEventListener('input', (e) => {
+    // Allow commas but remove them for the actual value
+    let value = e.target.value;
+    if (value.includes(',')) {
+      const cleaned = value.replace(/,/g, '');
+      if (!isNaN(cleaned)) {
+        e.target.value = cleaned;
+      }
+    }
+  });
+
   document.getElementById('main-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') convert();
   });
@@ -499,15 +510,26 @@
   document.getElementById('main-input').addEventListener('paste', (e) => {
     e.preventDefault();
     const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-    const lines = pastedText.split(/[\n\r]+/).map(l => l.trim()).filter(l => l !== '');
+    const lines = pastedText
+      .split(/[\n\r]+/)
+      .map(l => l.trim())
+      .map(l => {
+        // Remove all commas (thousands separators) but keep decimals
+        const cleaned = l.replace(/,/g, '').replace(/[^\d.]/g, '');
+        return cleaned;
+      })
+      .filter(l => l !== '' && !isNaN(parseFloat(l)));
+    
+    if (lines.length === 0) return;
     
     // If multiple numbers detected, switch to batch mode
-    if (lines.length > 1 && lines.every(l => !isNaN(parseFloat(l)))) {
+    if (lines.length > 1) {
       document.getElementById('batch-input').value = lines.join('\n');
       if (!batchVisible) toggleBatch();
+      document.getElementById('main-input').value = '';
       convertBatch();
     } else if (lines.length === 1) {
-      // Single number, just paste it
+      // Single number, paste it
       document.getElementById('main-input').value = lines[0];
       convert();
     }
@@ -622,8 +644,14 @@
     document.getElementById('batch-results').innerHTML = html;
   }
 
-  // Initialize
-  onCurrencyChange();
+  document.getElementById('batch-input').addEventListener('input', function() {
+    // Clean up commas from each line while preserving line structure
+    const lines = this.value.split('\n');
+    const cleaned = lines.map(line => line.replace(/,/g, '')).join('\n');
+    if (cleaned !== this.value) {
+      this.value = cleaned;
+    }
+  });
 </script>
 </body>
 </html>
